@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preguntas Familiares</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@tailwindcss/browser@latest"></script>
+    <style>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </style>
+    <style>
+        /* Custom styles for alternating table row colors */
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .table-striped tbody tr:nth-of-type(even) {
+            background-color: rgba(0, 0, 0, 0);
+        }
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: 0.375rem;
+            transition: border-color 0.15s ease-in-out, shadow-sm 0.15s ease-in-out;
+            appearance: none;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.5);
+        }
+        textarea.form-control {
+            min-height: 6rem;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-inter">
+    <div class="container mx-auto p-4 md:p-6 lg:p-8">
+        <section class="bg-white rounded-lg shadow-md p-4 md:p-6 lg:p-8 mb-6">
+            <h2 class="text-xl md:text-2xl lg:text-3xl font-semibold text-blue-600 mb-4">Pregunta de la Semana</h2>
+            <div id="pregunta-semana" class="mb-4 text-lg md:text-xl">
+                </div>
+            <div id="respuesta-form">
+                <div class="mb-4">
+                    <label for="nombre" class="block text-gray-700 text-sm font-bold mb-2">Tu Nombre:</label>
+                    <input type="text" id="nombre" placeholder="Tu nombre completo" class="form-control bg-white border-gray-300 text-gray-700 focus:ring-blue-500 focus:border-blue-500">
+                    <div id="nombre-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                </div>
+                <div class="mb-6">
+                    <label for="respuesta" class="block text-gray-700 text-sm font-bold mb-2">Tu Respuesta:</label>
+                    <textarea id="respuesta" placeholder="Escribe tu respuesta aquí" class="form-control bg-white border-gray-300 text-gray-700 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    <div id="respuesta-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                </div>
+                <button id="enviar-respuesta" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">Enviar Respuesta</button>
+                <div id="mensaje-error" class="mt-4 text-red-500 font-semibold" style="display: none;"></div>
+                <div id="mensaje-exito" class="mt-4 text-green-500 font-semibold" style="display: none;">¡Gracias por tu respuesta!</div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-lg shadow-md p-4 md:p-6 lg:p-8 mb-6">
+            <h2 class="text-xl md:text-2xl lg:text-3xl font-semibold text-blue-600 mb-4">Pregunta de la Próxima Semana</h2>
+            <div id="pregunta-proxima-semana" class="text-lg md:text-xl text-gray-700">
+                </div>
+        </section>
+
+        <section class="bg-white rounded-lg shadow-md p-4 md:p-6 lg:p-8">
+            <h2 class="text-xl md:text-2xl lg:text-3xl font-semibold text-blue-600 mb-4">Historial de Respuestas</h2>
+            <div id="tabla-respuestas-container" class="space-y-6">
+                </div>
+        </section>
+    </div>
+
+    <script>
+        const preguntas = [
+            "¿Cuál es tu recuerdo más preciado de la infancia con la familia?",
+            "¿Qué tradición familiar te gustaría mantener viva y por qué?",
+            "¿Cuál es el mejor consejo que has recibido de un miembro de la familia?",
+            "¿Qué sueño o meta siempre has querido alcanzar?",
+            "¿Cuál es tu pasatiempo favorito y cómo lo descubriste?",
+            "¿Qué historia interesante recuerdas de alguno de nuestros antepasados?",
+            "Si pudieras viajar a cualquier lugar con un familiar, ¿dónde irían?",
+            "¿Qué te gustaría aprender a hacer que aún no sabes?",
+            "¿Cuál es tu comida familiar favorita y quién la prepara mejor?",
+            "¿Qué cualidad admiras más de tus padres o abuelos?",
+            "¿Cuál es tu mayor logro hasta ahora y cómo te apoyó tu familia?",
+            "¿Qué valor familiar consideras más importante transmitir a las futuras generaciones?",
+            "¿Hay alguna historia divertida o inusual que recuerdas de una reunión familiar?",
+            "¿Qué miembro de la familia te ha inspirado más y por qué?",
+            "¿Cuál es el regalo más significativo que has recibido de un familiar?",
+            "¿Qué te gustaría saber sobre la vida de un familiar que ya no está con nosotros?",
+            "¿Cuál es tu recuerdo favorito de un viaje o vacación familiar?",
+            "¿Qué actividad disfrutas más hacer con la familia?",
+            "¿Qué enseñanza te ha dejado alguna dificultad que haya superado la familia?",
+            "¿Cuál es tu mayor deseo para el futuro de nuestra familia?",
+            "¿Qué anécdota te gustaría compartir sobre algún familiar?",
+            "¿Qué objeto o recuerdo familiar tiene un significado especial para ti?",
+            "¿Cómo te gustaría ser recordado por nuestra familia?",
+            "¿Qué has aprendido sobre el amor y el compromiso a través de tu familia?",
+            "¿Cuál es el mayor desafío que has enfrentado y cómo te ayudó tu familia a superarlo?",
+            "¿Qué aspecto de nuestra cultura familiar te hace sentir más orgulloso?",
+            "Si pudieras cambiar algo del pasado familiar, ¿qué sería y por qué?",
+            "¿Qué momento familiar te ha hecho sentir más agradecido?",
+            "¿Qué papel juega la familia en tu vida y en tus decisiones?",
+            "¿Qué te gustaría que las nuevas generaciones supieran sobre nuestros orígenes?",
+            "¿Cuál es tu mayor fuente de apoyo dentro de la familia?",
+            "¿Qué tradición familiar te gustaría crear o iniciar?",
+            "¿Qué lección de vida te ha enseñado un miembro de la familia?",
+            "¿Qué aspecto de la personalidad de un familiar te gustaría heredar?",
+            "¿Cómo describirías el vínculo que une a nuestra familia?",
+            "¿Qué te hace sentir más conectado con tus raíces familiares?",
+            "¿Qué historia familiar te ha sorprendido más?",
+            "¿Qué sueñas para tu futuro y cómo encaja tu familia en esos planes?",
+            "¿Qué te gustaría decirle a un familiar que ha tenido un gran impacto en tu vida?",
+            "¿Qué te gustaría aprender de un familiar mayor?",
+            "¿Qué te gustaría enseñarle a un familiar más joven?",
+            "¿Qué valor familiar te gustaría fortalecer en tu propia vida?",
+            "¿Qué recuerdo te gustaría crear con tu familia en el futuro?",
+            "¿Qué miembro de la familia te ha enseñado algo valioso sobre la vida?",
+            "¿Qué te gustaría que nuestra familia lograra unida?",
+            "¿Qué aspecto de nuestra historia familiar te da más esperanza?",
+            "¿Qué te hace sentir más orgulloso de ser parte de esta familia?",
+            "¿Qué te gustaría que se dijera de nuestra familia en las futuras generaciones?",
+            "¿Qué has descubierto sobre ti mismo a través de tu relación con tu familia?",
+            "¿Qué papel te gustaría desempeñar en el futuro de nuestra familia?",
+            "Si pudieras darle un consejo a nuestra familia, ¿cuál sería?",
+            "¿Qué te gustaría que nuestra familia celebrara más a menudo?"
+        ];
+
+        function seleccionarPreguntaSemanal(preguntas, customDate = null) {
+            let fechaActual;
+            if (customDate) {
+                fechaActual = new Date(customDate);
+            } else {
+                fechaActual = new Date();
+            }
+            const inicioDelAño = new Date(fechaActual.getFullYear(), 0, 0);
+            const diferencia = fechaActual - inicioDelAño;
+            const unDia = 1000 * 60 * 60 * 24;
+            const numeroDeSemana = Math.floor(diferencia / (unDia * 7));
+            const indicePregunta = numeroDeSemana % preguntas.length;
+            return {
+                pregunta: preguntas[indicePregunta],
+                indice: indicePregunta
+            };
+        }
+
+        function seleccionarPreguntaProximaSemana(preguntas, indicePreguntaActual) {
+            const indiceProximaPregunta = (indicePreguntaActual + 1) % preguntas.length;
+            return preguntas[indiceProximaPregunta];
+        }
+
+        let respuestas = [];
+        if (localStorage.getItem('respuestasFamiliares')) {
+            respuestas = JSON.parse(localStorage.getItem('respuestasFamiliares'));
+        }
+
+        const preguntaSemanaElement = document.getElementById("pregunta-semana");
+        const preguntaProximaSemanaElement = document.getElementById("pregunta-proxima-semana");
+        const nombreInput = document.getElementById("nombre");
+        const respuestaInput = document.getElementById("respuesta");
+        const enviarRespuestaBtn = document.getElementById("enviar-respuesta");
+        const tablaRespuestasContainer = document.getElementById("tabla-respuestas-container");
+        const mensajeError = document.getElementById("mensaje-error");
+        const mensajeExito = document.getElementById("mensaje-exito");
+        const nombreError = document.getElementById("nombre-error");
+        const respuestaError = document.getElementById("respuesta-error");
+
+
+        function mostrarPreguntaSemanal(testDate = null) {
+            const { pregunta, indice } = seleccionarPreguntaSemanal(preguntas, testDate);
+            preguntaSemanaElement.textContent = pregunta;
+            preguntaProximaSemanaElement.textContent = seleccionarPreguntaProximaSemana(preguntas, indice);
+        }
+
+        function mostrarRespuestas() {
+            tablaRespuestasContainer.innerHTML = "";
+            const storedResponses = localStorage.getItem('respuestasFamiliares');
+            if (storedResponses) {
+                respuestas = JSON.parse(storedResponses);
+                const groupedResponses = {};
+                respuestas.forEach(response => {
+                    if (!groupedResponses[response.pregunta]) {
+                        groupedResponses[response.pregunta] = [];
+                    }
+                    groupedResponses[response.pregunta].push(response);
+                });
+
+                for (const pregunta in groupedResponses) {
+                    const table = document.createElement("table");
+                    table.className = "min-w-full leading-normal shadow-md rounded-lg overflow-hidden table-striped";
+                    const thead = document.createElement("thead");
+                    thead.className = "bg-gray-200 text-gray-700";
+                    const headerRow = document.createElement("tr");
+                    const preguntaHeaderCell = document.createElement("th");
+                    preguntaHeaderCell.colSpan = 2;
+                    preguntaHeaderCell.textContent = pregunta;
+                    preguntaHeaderCell.className = "px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider text-center";
+                    headerRow.appendChild(preguntaHeaderCell);
+                    thead.appendChild(headerRow);
+
+                    const subHeaderRow = document.createElement("tr");
+                    const nombreHeader = document.createElement("th");
+                    nombreHeader.textContent = "Nombre";
+                    nombreHeader.className = "px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider";
+                    const respuestaHeader = document.createElement("th");
+                    respuestaHeader.textContent = "Respuesta";
+                    respuestaHeader.className = "px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider";
+                    subHeaderRow.appendChild(nombreHeader);
+                    subHeaderRow.appendChild(respuestaHeader);
+                    thead.appendChild(subHeaderRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement("tbody");
+                    tbody.className = "bg-white";
+                    groupedResponses[pregunta].forEach(response => {
+                        const row = document.createElement("tr");
+                        const nombreCell = document.createElement("td");
+                        nombreCell.textContent = response.nombre;
+                        nombreCell.className = "px-5 py-5 border-b border-gray-200 text-sm";
+                        const respuestaCell = document.createElement("td");
+                        respuestaCell.textContent = response.respuesta;
+                        respuestaCell.className = "px-5 py-5 border-b border-gray-200 text-sm";
+                        row.appendChild(nombreCell);
+                        row.appendChild(respuestaCell);
+                        tbody.appendChild(row);
+                    });
+                    table.appendChild(tbody);
+                    tablaRespuestasContainer.appendChild(table);
+                }
+            }
+        }
+
+        enviarRespuestaBtn.addEventListener("click", () => {
+            const nombre = nombreInput.value.trim();
+            const respuesta = respuestaInput.value.trim();
+
+            nombreError.style.display = "none";
+            respuestaError.style.display = "none";
+            mensajeError.style.display = "none";
+            mensajeExito.style.display = "none";
+
+            if (!nombre) {
+                nombreError.textContent = "Por favor, ingresa tu nombre.";
+                nombreError.style.display = "block";
+                return;
+            }
+
+            if (!respuesta) {
+                respuestaError.textContent = "Por favor, ingresa tu respuesta.";
+                respuestaError.style.display = "block";
+                return;
+            }
+
+            const { pregunta } = seleccionarPreguntaSemanal(preguntas);
+            respuestas.push({ pregunta, nombre, respuesta });
+            localStorage.setItem('respuestasFamiliares', JSON.stringify(respuestas));
+
+            mensajeExito.style.display = "block";
+            nombreInput.value = "";
+            respuestaInput.value = "";
+            mostrarRespuestas();
+        });
+
+        // Initial call
+        //mostrarPreguntaSemanal("2025-07-18");
+        mostrarRespuestas();
+
+        // For testing purposes, you can call mostrarPreguntaSemanal with a date string:
+        // mostrarPreguntaSemanal('2024-01-15'); // Example: Monday, January 15, 2024
+    </script>
+</body>
+</html>
