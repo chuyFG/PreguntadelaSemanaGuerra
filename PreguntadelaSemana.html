@@ -6,7 +6,7 @@
     <title>Preguntas Familiares</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@tailwindcss/browser@latest"></script>
-    <style>
+    <script>
         tailwind.config = {
             theme: {
                 extend: {
@@ -16,7 +16,7 @@
                 },
             },
         }
-    </style>
+    </script>
     <style>
         /* Custom styles for alternating table row colors */
         .table-striped tbody tr:nth-of-type(odd) {
@@ -162,20 +162,32 @@
         }
 
         let respuestas = [];
-        if (localStorage.getItem('respuestasFamiliares')) {
-            respuestas = JSON.parse(localStorage.getItem('respuestasFamiliares'));
-        }
 
-        const preguntaSemanaElement = document.getElementById("pregunta-semana");
-        const preguntaProximaSemanaElement = document.getElementById("pregunta-proxima-semana");
-        const nombreInput = document.getElementById("nombre");
-        const respuestaInput = document.getElementById("respuesta");
-        const enviarRespuestaBtn = document.getElementById("enviar-respuesta");
-        const tablaRespuestasContainer = document.getElementById("tabla-respuestas-container");
-        const mensajeError = document.getElementById("mensaje-error");
-        const mensajeExito = document.getElementById("mensaje-exito");
-        const nombreError = document.getElementById("nombre-error");
-        const respuestaError = document.getElementById("respuesta-error");
+        async function loadRespuestas() {
+            try {
+                const response = await fetch('respuestas.csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const text = await response.text();
+                // Parse the CSV data
+                const lines = text.trim().split('\n');
+                const headers = lines[0].split(',');
+                for (let i = 1; i < lines.length; i++) {
+                    const data = lines[i].split(',');
+                    if (data.length === headers.length) {
+                        let row = {};
+                        for (let j = 0; j < headers.length; j++) {
+                            row[headers[j]] = data[j];
+                        }
+                        respuestas.push(row);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading respuestas:', error);
+                // Handle the error appropriately, e.g., show a message to the user
+            }
+        }
 
 
         function mostrarPreguntaSemanal(testDate = null) {
@@ -186,9 +198,7 @@
 
         function mostrarRespuestas() {
             tablaRespuestasContainer.innerHTML = "";
-            const storedResponses = localStorage.getItem('respuestasFamiliares');
-            if (storedResponses) {
-                respuestas = JSON.parse(storedResponses);
+            if (respuestas && respuestas.length > 0) {
                 const groupedResponses = {};
                 respuestas.forEach(response => {
                     if (!groupedResponses[response.pregunta]) {
@@ -239,6 +249,46 @@
                     table.appendChild(tbody);
                     tablaRespuestasContainer.appendChild(table);
                 }
+            } else {
+                tablaRespuestasContainer.innerHTML = "<p>No hay respuestas disponibles.</p>";
+            }
+        }
+
+        async function saveRespuesta(nombre, respuesta) {
+            const { pregunta } = seleccionarPreguntaSemanal(preguntas);
+            // Simple CSV string creation
+            const csvData = `${pregunta},${nombre},${respuesta}\n`;
+
+            try {
+                // Send data to the server to append to the CSV file
+                const response = await fetch('guardar_respuesta.php', {  // Changed to a relative path
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `csvData=${encodeURIComponent(csvData)}`,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.text();
+                if (result === "success") {
+                     // Update local respuestas array and re-render
+                    respuestas.push({ pregunta, nombre, respuesta });
+                    mostrarRespuestas();
+                    mensajeExito.style.display = "block";
+                    nombreInput.value = "";
+                    respuestaInput.value = "";
+                } else {
+                    mensajeError.textContent = "Hubo un error al guardar la respuesta.";
+                    mensajeError.style.display = "block";
+                }
+
+            } catch (error) {
+                console.error('Error saving respuesta:', error);
+                mensajeError.textContent = "Hubo un error al enviar la respuesta al servidor.";
+                mensajeError.style.display = "block";
             }
         }
 
@@ -263,19 +313,14 @@
                 return;
             }
 
-            const { pregunta } = seleccionarPreguntaSemanal(preguntas);
-            respuestas.push({ pregunta, nombre, respuesta });
-            localStorage.setItem('respuestasFamiliares', JSON.stringify(respuestas));
-
-            mensajeExito.style.display = "block";
-            nombreInput.value = "";
-            respuestaInput.value = "";
-            mostrarRespuestas();
+            saveRespuesta(nombre, respuesta);
         });
 
         // Initial call
-        mostrarPreguntaSemanal();
-        mostrarRespuestas();
+        loadRespuestas().then(() => {
+            mostrarPreguntaSemanal("2025-07-18");
+            mostrarRespuestas();
+        });
 
         // For testing purposes, you can call mostrarPreguntaSemanal with a date string:
         // mostrarPreguntaSemanal('2024-01-15'); // Example: Monday, January 15, 2024
